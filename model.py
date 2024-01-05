@@ -1,14 +1,16 @@
 import pandas as pd
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, AdamW
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Dataset, random_split
 import torch
+# Use the PyTorch implementation of AdamW instead of the one from transformers
+from torch.optim import AdamW
+
 
 # Load your dataset
 data = pd.read_csv('data.csv')
 
-# Convert labels to numerical format if they aren't already
-# Assuming 'hate' is labeled as 'hate' and non-hate as 'notgiven', you might do:
-data['label'] = data['label'].map({'hate': 1, 'notgiven': 0})
+# Ensure 'label' column is integer type and handle potential NaN values
+data['label'] = data['label'].fillna(0).astype(int)  # Replace NaN with a default value like 0
 
 # Load a pre-trained model and tokenizer
 model_name = "distilbert-base-uncased"
@@ -20,21 +22,22 @@ tokens = tokenizer(list(data['text']), padding=True, truncation=True, return_ten
 input_ids = tokens['input_ids']
 attention_mask = tokens['attention_mask']
 
-# Prepare dataset
-class HateSpeechDataset(torch.utils.data.Dataset):
+# Custom dataset
+class HateSpeechDataset(Dataset):
     def __init__(self, encodings, labels):
         self.encodings = encodings
         self.labels = labels
 
     def __getitem__(self, idx):
-        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
-        item['labels'] = torch.tensor(int(self.labels[idx]))
+        item = {key: val[idx].clone().detach() for key, val in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx], dtype=torch.long)
         return item
 
     def __len__(self):
         return len(self.labels)
 
-dataset = HateSpeechDataset(tokens, list(data['label']))
+# Create the dataset
+dataset = HateSpeechDataset(tokens, data['label'].values)
 
 # Split the dataset into training and validation sets
 train_size = int(0.8 * len(dataset))
@@ -42,14 +45,16 @@ val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # Initialize DataLoader
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=30, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=30, shuffle=False)
 
-# Optimizer
+# Define the optimizer
 optimizer = AdamW(model.parameters(), lr=5e-5)
 
-# Define a training loop
-num_epochs = 3  # Define the number of epochs
+# Define the number of epochs
+num_epochs = 5
+
+# Training loop
 for epoch in range(num_epochs):
     model.train()
     for batch in train_loader:
@@ -60,7 +65,7 @@ for epoch in range(num_epochs):
         optimizer.step()
         print(f"Epoch {epoch}, Loss: {loss.item()}")
 
-    # Evaluate the model on the validation set
+    # Evaluation loop
     model.eval()
     total_eval_accuracy = 0
     for batch in val_loader:
