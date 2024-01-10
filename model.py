@@ -82,17 +82,19 @@ for epoch in range(num_epochs):
     # Evaluation loop
     model.eval()
     total_eval_accuracy = 0
+    
     # Inside the evaluation loop:
     for batch in val_loader:
         with torch.no_grad():
             outputs = model(**{k: v.to(device) for k, v in batch.items()})
         logits = outputs.logits
-        predictions = torch.argmax(logits, dim=-1)
+        predictions = torch.argmax(logits, dim=-1).cpu()  # Move predictions to CPU
         correct_predictions = predictions.eq(batch['labels'].to(predictions.device))
         total_eval_accuracy += correct_predictions.sum().item()
 
-        true_labels.extend(batch['labels'].cpu().numpy())
-        pred_labels.extend(predictions)
+        true_labels.extend(batch['labels'].cpu().numpy())  # Move true labels to CPU
+        pred_labels.extend(predictions.numpy())  # predictions are already on CPU
+
         
     avg_val_accuracy = total_eval_accuracy / len(val_dataset)
     print(f"Validation accuracy: {avg_val_accuracy:.4f}")
