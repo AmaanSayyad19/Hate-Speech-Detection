@@ -6,9 +6,6 @@ import torch
 from torch.optim import AdamW
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
-
-
-
 # Load your dataset
 data = pd.read_csv('data.csv')
 
@@ -56,8 +53,8 @@ val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # Initialize DataLoader
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=12, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=12, shuffle=False)
 
 # Define the optimizer
 optimizer = AdamW(model.parameters(), lr=5e-5)
@@ -124,7 +121,7 @@ test_data = pd.read_csv('data2.csv')
 # Process the test data as you did the training and validation data
 test_tokens = tokenizer(list(test_data['text']), padding=True, truncation=True, return_tensors="pt")
 test_dataset = HateSpeechDataset(test_tokens, test_data['label'].values)
-test_loader = DataLoader(test_dataset, batch_size=30, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=12, shuffle=False)
 
 # Collect all labels and predictions for test set
 true_test_labels = []
@@ -150,4 +147,3 @@ print(f"Test Recall: {test_recall:.4f}")
 print(f"Test F1 Score: {test_f1:.4f}")
 print("Test Confusion Matrix:")
 print(test_conf_matrix)
-
