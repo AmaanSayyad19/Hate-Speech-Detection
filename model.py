@@ -6,6 +6,9 @@ import torch
 from torch.optim import AdamW
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
+
+
+
 # Load your dataset
 data = pd.read_csv('data.csv')
 
@@ -15,6 +18,14 @@ data['label'] = data['label'].fillna(0).astype(int)  # Replace NaN with a defaul
 # Load a pre-trained model and tokenizer
 model_name = "distilbert-base-uncased"
 model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+# Check if a GPU is available and if not, use a CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# Move your model to the selected device
+model = model.to(device)
+
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 # Tokenize the input texts
@@ -45,8 +56,8 @@ val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # Initialize DataLoader
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
 # Define the optimizer
 optimizer = AdamW(model.parameters(), lr=5e-5)
@@ -59,7 +70,7 @@ for epoch in range(num_epochs):
     model.train()
     for batch in train_loader:
         optimizer.zero_grad()
-        outputs = model(**{k: v.to(model.device) for k, v in batch.items()})
+        outputs = model(**{k: v.to(device) for k, v in batch.items()})
         loss = outputs.loss
         loss.backward()
         optimizer.step()
@@ -74,7 +85,7 @@ for epoch in range(num_epochs):
     # Inside the evaluation loop:
     for batch in val_loader:
         with torch.no_grad():
-            outputs = model(**{k: v.to(model.device) for k, v in batch.items()})
+            outputs = model(**{k: v.to(device) for k, v in batch.items()})
         logits = outputs.logits
         predictions = torch.argmax(logits, dim=-1)
         correct_predictions = predictions.eq(batch['labels'].to(predictions.device))
@@ -120,7 +131,7 @@ pred_test_labels = []
 model.eval()  # Make sure the model is in evaluation mode
 for batch in test_loader:
     with torch.no_grad():
-        outputs = model(**{k: v.to(model.device) for k, v in batch.items()})
+        outputs = model(**{k: v.to(device) for k, v in batch.items()})
     logits = outputs.logits
     predictions = torch.argmax(logits, dim=-1).cpu().numpy()
     true_test_labels.extend(batch['labels'].cpu().numpy())
