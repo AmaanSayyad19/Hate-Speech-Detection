@@ -1,3 +1,1 @@
-# AltaML-Challenge
-
 Amaan Sayyad
