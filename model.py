@@ -72,6 +72,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         print(f"Epoch {epoch}, Loss: {loss.item()}")
+        print(Epoch {epoch
         
     true_labels = []
     pred_labels = []
@@ -95,11 +96,12 @@ for epoch in range(num_epochs):
         
     avg_val_accuracy = total_eval_accuracy / len(val_dataset)
     print(f"Validation accuracy: {avg_val_accuracy:.4f}")
-    
+
+   
     # Save the trained model
     model.save_pretrained('./my_moderation_model')
     tokenizer.save_pretrained('./my_moderation_model')
-    
+
     # Calculate metrics
     precision = precision_score(true_labels, pred_labels)
     recall = recall_score(true_labels, pred_labels)
